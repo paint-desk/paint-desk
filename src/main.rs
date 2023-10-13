@@ -75,6 +75,7 @@ impl MyEguiApp {
             //self.data[i] = Color::new(255, 0, 0, 0);//rand::random::<u32>();
             self.data[i].green = 0;
             self.data[i].blue = 255;
+            self.data[i].alpha = 255;
         }
     }
 
