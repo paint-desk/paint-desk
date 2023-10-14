@@ -2,21 +2,21 @@ use std::collections::HashMap;
 use super::data_types::*;
 
 
-pub trait Canvas{
+pub trait CanvasLayer {
     fn get_pixel(&self, pixel_pos: PixelPos) -> Color;
     fn set_pixel(&mut self, pixel_pos: PixelPos, color: Color);
-    fn apply_to_canvas(&self, target_canvas: &mut dyn Canvas);
+    fn apply_to_canvas(&self, target_canvas: &mut dyn CanvasLayer);
     fn clear(&mut self);
 }
 
-pub struct FlatCanvas {
+pub struct FlatCanvasLayer {
     width: u32,
     height: u32,
     data: Vec<Color>
 }
-impl FlatCanvas {
-    pub fn new(w: u32, h: u32) -> FlatCanvas {
-        FlatCanvas {
+impl FlatCanvasLayer {
+    pub fn new(w: u32, h: u32) -> FlatCanvasLayer {
+        FlatCanvasLayer {
             width: w,
             height: h,
             data: vec!(Color::new(0, 0, 0, 0); (w * h) as usize)
@@ -24,7 +24,7 @@ impl FlatCanvas {
     }
 }
 
-impl Canvas for FlatCanvas {
+impl CanvasLayer for FlatCanvasLayer {
     fn get_pixel(&self, pixel_pos: PixelPos) -> Color {
         self.data[(pixel_pos.x + pixel_pos.y * self.width) as usize]
     }
@@ -33,7 +33,7 @@ impl Canvas for FlatCanvas {
         self.data[(pixel_pos.x + pixel_pos.y * self.width) as usize] = color;
     }
 
-    fn apply_to_canvas(&self, target_canvas: &mut dyn Canvas) {
+    fn apply_to_canvas(&self, target_canvas: &mut dyn CanvasLayer) {
         for x in 0..self.width {
             for y in 0..self.height {
                 target_canvas.set_pixel(PixelPos{x, y}, self.get_pixel(PixelPos{x, y}));
@@ -49,15 +49,15 @@ impl Canvas for FlatCanvas {
 
 }
 
-pub struct HashMapCanvas {
+pub struct HashMapCanvasLayer {
     width: u32,
     height: u32,
     data: HashMap<PixelPos, Color>
 }
 
-impl HashMapCanvas {
-    pub fn new(w: u32, h: u32) -> HashMapCanvas {
-        HashMapCanvas {
+impl HashMapCanvasLayer {
+    pub fn new(w: u32, h: u32) -> HashMapCanvasLayer {
+        HashMapCanvasLayer {
             width: w,
             height: h,
             data: HashMap::new()
@@ -74,7 +74,7 @@ impl HashMapCanvas {
     }
 }
 
-impl Canvas for HashMapCanvas {
+impl CanvasLayer for HashMapCanvasLayer {
     fn get_pixel(&self, pixel_pos: PixelPos) -> Color {
         self.data.get(&pixel_pos).unwrap_or(&Color::new(0, 0, 0, 0)).clone()
     }
@@ -83,7 +83,7 @@ impl Canvas for HashMapCanvas {
         self.data.insert(pixel_pos, color);
     }
 
-    fn apply_to_canvas(&self, target_canvas: &mut dyn Canvas) {
+    fn apply_to_canvas(&self, target_canvas: &mut dyn CanvasLayer) {
         self.data.iter().for_each(|(pos, color)| {
             target_canvas.set_pixel(*pos, *color);
         });
