@@ -138,7 +138,7 @@ impl eframe::App for AppContext {
             ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
         });
 
-        self.fill();
+        //self.fill();
         //ctx.request_repaint();
     }
 }

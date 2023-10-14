@@ -20,7 +20,7 @@ impl FlatCanvasLayer {
         FlatCanvasLayer {
             width: w,
             height: h,
-            data: vec!(Color::new(0, 0, 0, 0); (w * h) as usize)
+            data: vec!(Color::new(255, 255, 255, 255); (w * h) as usize)
         }
     }
 
