@@ -1,7 +1,10 @@
+use std::collections::HashMap;
 use std::time::Instant;
 use eframe::egui;
 use eframe::epaint::textures::TextureOptions;
 use egui::{ColorImage, PointerButton, Pos2, Rect, Sense, Vec2};
+use crate::paint_app::app::{Canvas, PaintTool, PixelPencil};
+use crate::paint_app::canvas::{CanvasLayer, FlatCanvasLayer};
 use crate::paint_app::data_types::*;
 
 mod paint_app;
@@ -9,7 +12,7 @@ mod paint_app;
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
     let native_options = eframe::NativeOptions::default();
-    eframe::run_native("Texture Drawer", native_options, Box::new(|cc| Box::new(MyEguiApp::new(cc, 1024, 768))));
+    eframe::run_native("Paint Desk", native_options, Box::new(|cc| Box::new(AppContext::new(cc, 1024, 768))));
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -21,7 +24,7 @@ fn main() {
             .start(
                 "the_canvas_id", // hardcode it
                 web_options,
-                Box::new(|cc| Box::new(MyEguiApp::new(cc, 1024, 768))),
+                Box::new(|cc| Box::new(AppContext::new(cc, 1024, 768))),
             )
             .await
             .expect("failed to start eframe");
@@ -30,37 +33,41 @@ fn main() {
 
 
 //#[derive(Default)]
-struct MyEguiApp {
-    width: u32,
-    height: u32,
-    data: Vec<Color>,
+struct AppContext {
     start_time: f32,
     frame_times: Vec<f32>,
+
+    canvas: FlatCanvasLayer,
+    paint_tools: HashMap<u32, Box<dyn PaintTool>>,
+    selected_paint_tool: u32
 }
 
-impl MyEguiApp {
+impl AppContext {
     fn new(cc: &eframe::CreationContext<'_>, w:u32, h:u32) -> Self {
         // Customize egui here with cc.egui_ctx.set_fonts and cc.egui_ctx.set_visuals.
         // Restore app state using cc.storage (requires the "persistence" feature).
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
-        MyEguiApp {
-            width: w,
-            height: h,
-            data: vec!(Color::new(0, 255, 0, 0); (w * h) as usize),
+        let mut app = AppContext {
             start_time: 0f32,
-            frame_times: Vec::new()
-        }
+            frame_times: Vec::new(),
+
+            canvas: FlatCanvasLayer::new(w, h),
+            paint_tools: HashMap::new(),
+            selected_paint_tool: 0
+        };
+        app.paint_tools.insert(1, Box::new(PixelPencil::new(Color::new(255, 0, 0, 255), 1)));
+        app
     }
 
 
     fn fill(&mut self)
     {
-        for i in 0..self.width as usize * self.height as usize {
-            //self.data[i] = Color::new(255, 0, 0, 0);//rand::random::<u32>();
-            self.data[i].green = 0;
-            self.data[i].blue = 255;
-            self.data[i].alpha = 255;
+        let size = self.canvas.get_size();
+        for x in 0..size.0 {
+            for y in 0..size.1 {
+                self.canvas.set_pixel(PixelPos {x, y}, Color::new(255, 255, 0, 255));
+            }
         }
     }
 
@@ -78,7 +85,7 @@ impl MyEguiApp {
     }
 }
 
-impl eframe::App for MyEguiApp {
+impl eframe::App for AppContext {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Hello World!");
@@ -86,7 +93,10 @@ impl eframe::App for MyEguiApp {
             let fps = 0f32;//self.get_fps();
             ui.label(format!("FPS: {:.2}", fps));
 
-            let slice: &[Color] = &self.data;
+            let size = self.canvas.get_size();
+
+            //let slice: &[Color] = &self.data;
+            let slice: &[Color] = &self.canvas.get_data();
 
             // Unsafe conversion from &[u32] to &[u8]
             let byte_slice: &[u8] = unsafe {
@@ -96,7 +106,7 @@ impl eframe::App for MyEguiApp {
                 )
             };
 
-            let image = ColorImage::from_rgba_premultiplied([self.width as usize, self.height as usize], &byte_slice);
+            let image = ColorImage::from_rgba_premultiplied([size.0 as usize, size.1 as usize], &byte_slice);
 
             let texture = ui.ctx().load_texture("aa", image, TextureOptions::NEAREST);
 
@@ -129,6 +139,6 @@ impl eframe::App for MyEguiApp {
         });
 
         self.fill();
-        ctx.request_repaint();
+        //ctx.request_repaint();
     }
 }
