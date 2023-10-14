@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use itertools::Itertools;
 use super::data_types::*;
 use super::canvas::*;
 
@@ -20,20 +21,14 @@ impl Canvas {
             self.apply_command(command);
         });
     }
-    fn apply_command(&mut self, command : &EditCommand){
-        //if let Some(active_canvas) = self.get_active_canvas_mut(){
-        //    command.apply(active_canvas);
-        //    self.undo_stack.push(command.reverse(active_canvas));
-        //}
-        //else { println!("no active canvas"); }
 
-        // reverse if - else
-        self.layers.get_active_canvas_mut().map(|active_canvas|{
+    fn apply_command(&mut self, command : &EditCommand){
+        self.layers.get_active_layer_mut().map(|active_canvas|{
             command.apply(active_canvas);
             self.undo_stack.push(command.reverse(active_canvas));
         });
-
     }
+
     pub fn stroke_start(&mut self, pixel_pos: PixelPos, tool : &mut dyn PaintTool){
         let mut commands = Vec::new();
         tool.stroke_start(pixel_pos, &mut self.tool_layer, &mut |command| commands.push(command));
@@ -70,25 +65,44 @@ impl Canvas {
         }
     }
 
-
     fn update_display_canvas(&mut self){
         self.draw_layer.clear();
 
+        let mut layers_to_apply = self.layers.entries.values()
+            .sorted_by(|a, b| a.order.cmp(&b.order))
+            .map(|entry| &entry.layer as &dyn CanvasLayer)
+            .collect_vec();
+
+        // make the tool_layer appear on top (you may want to apply it to correct layer instead)
+        layers_to_apply.push(&self.tool_layer);
+
+        apply_layers(layers_to_apply.into_iter(), &mut self.draw_layer);
     }
+}
+
+// applied in order (last one is on top)
+pub fn apply_layers<'a>(canvases_iter : impl Iterator<Item = &'a dyn CanvasLayer>, target_canvas : &mut dyn CanvasLayer){
+    canvases_iter.for_each(|canvas|{
+        canvas.apply_to_canvas(target_canvas);
+    });
 }
 
 pub struct CanvasLayers{
-    layers: HashMap<LayerId, FlatCanvasLayer>,
+    entries: HashMap<LayerId, CanvasLayerEntry>,
     active_layer_id: LayerId,
-
+}
+pub struct CanvasLayerEntry{
+    pub order: i32,
+    pub layer: FlatCanvasLayer,
 }
 
 impl CanvasLayers {
-    pub fn get_active_canvas(&self) -> Option<&dyn CanvasLayer>{
-        self.layers.get(&self.active_layer_id).map(|canvas| canvas as &dyn CanvasLayer)
+    pub fn get_active_layer(&self) -> Option<&FlatCanvasLayer>{
+        self.entries.get(&self.active_layer_id).map(|canvas| &canvas.layer)
     }
-    pub fn get_active_canvas_mut(&mut self) -> Option<&mut dyn CanvasLayer>{
-        self.layers.get_mut(&self.active_layer_id).map(|canvas| canvas as &mut dyn CanvasLayer)
+
+    pub fn get_active_layer_mut(&mut self) -> Option<&mut FlatCanvasLayer>{
+        self.entries.get_mut(&self.active_layer_id).map(|canvas| &mut canvas.layer)
     }
 }
 
