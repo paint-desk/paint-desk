@@ -135,6 +135,10 @@ impl eframe::App for AppContext {
 
             });
 
+            //TODO:
+            //let mut tool = self.paint_tools.get_mut(&self.selected_paint_tool).unwrap_or_default();
+
+
             ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
         });
 

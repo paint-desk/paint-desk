@@ -1,5 +1,20 @@
 use super::data_types::*;
 
+fn blend_color(top: Color, bottom: Color) -> Color {
+    let combined_alpha = top.alpha as u16 + ((255 - top.alpha as u16) * bottom.alpha as u16 + 127) / 255;
+
+    if combined_alpha == 0 {
+        return Color { red: 0, green: 0, blue: 0, alpha: 0 };
+    }
+
+    Color {
+        red: ((top.red as u16 * top.alpha as u16 + (255 - top.alpha as u16) * bottom.red as u16 * bottom.alpha as u16 / 255 + 127) / combined_alpha) as u8,
+        green: ((top.green as u16 * top.alpha as u16 + (255 - top.alpha as u16) * bottom.green as u16 * bottom.alpha as u16 / 255 + 127) / combined_alpha) as u8,
+        blue: ((top.blue as u16 * top.alpha as u16 + (255 - top.alpha as u16) * bottom.blue as u16 * bottom.alpha as u16 / 255 + 127) / combined_alpha) as u8,
+        alpha: combined_alpha as u8,
+    }
+}
+
 pub fn pixel_overlap(color_a : Color, color_b : Color) -> Color {
     let color_a_f32 = glam::Vec4::new(color_a.red as f32, color_a.green as f32, color_a.blue as f32, color_a.alpha as f32) * (1.0 / 255.0);
     let color_b_f32 = glam::Vec4::new(color_b.red as f32, color_b.green as f32, color_b.blue as f32, color_b.alpha as f32) * (1.0 / 255.0);
