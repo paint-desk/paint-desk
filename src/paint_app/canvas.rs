@@ -63,6 +63,15 @@ impl HashMapCanvas {
             data: HashMap::new()
         }
     }
+
+    pub fn pixels_iter(&self) -> impl Iterator<Item = (&PixelPos, &Color)> {
+        self.data.iter()
+    }
+
+
+    pub fn pixels_iter_mut(&mut self) -> impl Iterator<Item = (&PixelPos, &mut Color)> {
+        self.data.iter_mut()
+    }
 }
 
 impl Canvas for HashMapCanvas {
