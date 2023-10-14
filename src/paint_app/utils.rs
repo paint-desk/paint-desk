@@ -15,7 +15,7 @@ pub fn pixel_overlap(color_a : Color, color_b : Color) -> Color {
     let x = ((color_a_f32 * alpha_a + color_b_f32 * alpha_b) * 255.0).x;
     let y = ((color_a_f32 * alpha_a + color_b_f32 * alpha_b) * 255.0).y;
     let z = ((color_a_f32 * alpha_a + color_b_f32 * alpha_b) * 255.0).z;
-    let w = ((alpha_a + alpha_b) * 255.0);
+    let w = (alpha_a + alpha_b) * 255.0;
     print!("{} {} {} {}\n", x, y, z, w);
     let result = Color::new(
         x as u8,

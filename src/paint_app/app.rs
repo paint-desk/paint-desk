@@ -110,7 +110,7 @@ impl EditCommand {
     }
     pub fn reverse(&self, canvas : &dyn CanvasLayer) -> EditCommand {
         let mut result = EditCommand::default();
-        self.edits.iter().for_each(|(pos, color)|{
+        self.edits.iter().for_each(|(pos, _color)|{
             result.edits.push((*pos, canvas.get_pixel(*pos)));
         });
         result
@@ -128,7 +128,7 @@ pub struct PixelPencil {
     color : Color,
 }
 impl PixelPencil {
-    pub fn new(color : Color, size : u32) -> PixelPencil {
+    pub fn new(color : Color, _size : u32) -> PixelPencil {
         PixelPencil {
             color,
         }
@@ -140,14 +140,14 @@ impl PaintTool for PixelPencil {
     //    tool_canvas.clear();
     //}
     // like that but push_command should be of type Action<EditCommand> in c#
-    fn stroke_start(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_start(&mut self, _pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         tool_canvas.clear();
     }
 
-    fn stroke_update(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_update(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         tool_canvas.set_pixel(pixel_pos, self.color);
     }
-    fn stroke_end(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_end(&mut self, _pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
         let mut command = EditCommand::default();
         tool_canvas.pixels_iter().for_each(|(pos, color)|{
             command.edits.push((*pos, *color));
