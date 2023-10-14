@@ -2,6 +2,9 @@ use std::time::Instant;
 use eframe::egui;
 use eframe::epaint::textures::TextureOptions;
 use egui::{ColorImage, PointerButton, Pos2, Rect, Sense, Vec2};
+use crate::paint_app::data_types::*;
+
+mod paint_app;
 
 #[cfg(not(target_arch = "wasm32"))]
 fn main() {
@@ -25,24 +28,6 @@ fn main() {
     });
 }
 
-#[derive(Debug, Clone, Copy)]
-struct Color {
-    red: u8,
-    green: u8,
-    blue: u8,
-    alpha: u8
-}
-
-impl Color {
-    fn new(r: u8, g: u8, b: u8, a: u8) -> Color {
-        Color {
-            red: r,
-            green: g,
-            blue: b,
-            alpha: a
-        }
-    }
-}
 
 //#[derive(Default)]
 struct MyEguiApp {
