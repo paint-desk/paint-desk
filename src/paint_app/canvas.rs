@@ -24,7 +24,7 @@ impl FlatCanvasLayer {
         }
     }
 
-    pub fn get_data(&mut self) -> &Vec<Color> {
+    pub fn get_data(&self) -> &Vec<Color> {
         &self.data
     }
 }

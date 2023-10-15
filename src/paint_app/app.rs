@@ -10,9 +10,55 @@ pub struct Canvas {
 
     tool_layer: HashMapCanvasLayer,
     draw_layer: FlatCanvasLayer,
+
+    size: (u32, u32),
 }
 
 impl Canvas {
+    pub fn new(w: u32, h: u32) -> Canvas {
+        let mut canvas = Canvas {
+            layers: CanvasLayers {
+                entries: HashMap::new(),
+                active_layer_id: LayerId(0),
+            },
+            undo_stack : Vec::new(),
+            redo_stack : Vec::new(),
+
+            tool_layer: HashMapCanvasLayer::new(w, h),
+            draw_layer: FlatCanvasLayer::new(w, h),
+            size: (w, h),
+        };
+        canvas.layers.entries.insert(LayerId(0), CanvasLayerEntry {
+            order: 0,
+            layer: FlatCanvasLayer::new(w, h),
+        });
+        canvas.layers.active_layer_id = LayerId(0);
+        canvas.get_active_layer_mut().map(|active_canvas|{
+            active_canvas.clear();
+            for wi in 0..w {
+                for hi in 0..h {
+                    active_canvas.set_pixel(PixelPos{x: wi, y: hi}, Color::new(255, 0, 0, 255));
+                }
+            }
+
+        });
+
+        canvas
+    }
+    pub fn get_draw_layer(&self) -> &FlatCanvasLayer {
+        &self.draw_layer
+    }
+    pub fn get_active_layer(&self) -> Option<&FlatCanvasLayer>{
+        self.layers.get_active_layer()
+    }
+
+    pub fn get_active_layer_mut(&mut self) -> Option<&mut FlatCanvasLayer>{
+        self.layers.get_active_layer_mut()
+    }
+
+    pub fn get_size(&self) -> (u32, u32) {
+        self.size
+    }
     fn apply_commands(&mut self, commands : &Vec<EditCommand>){
         if commands.len() > 0 {
             self.redo_stack.clear();

@@ -37,7 +37,7 @@ struct AppContext {
     start_time: f32,
     frame_times: Vec<f32>,
 
-    canvas: FlatCanvasLayer,
+    canvas: Canvas,
     paint_tools: HashMap<u32, Box<dyn PaintTool>>,
     selected_paint_tool: u32
 }
@@ -52,7 +52,7 @@ impl AppContext {
             start_time: 0f32,
             frame_times: Vec::new(),
 
-            canvas: FlatCanvasLayer::new(w, h),
+            canvas: Canvas::new(w, h),
             paint_tools: HashMap::new(),
             selected_paint_tool: 0
         };
@@ -66,7 +66,14 @@ impl AppContext {
         let size = self.canvas.get_size();
         for x in 0..size.0 {
             for y in 0..size.1 {
-                self.canvas.set_pixel(PixelPos {x, y}, Color::new(255, 255, 0, 255));
+                match self.canvas.get_active_layer_mut() {
+                    Some(layer) => {
+                        layer.set_pixel(PixelPos {x, y}, Color::new(255, 255, 0, 255));
+                    }
+                    None => {
+                        println!("no active layer");
+                    }
+                }
             }
         }
     }
@@ -96,7 +103,7 @@ impl eframe::App for AppContext {
             let size = self.canvas.get_size();
 
             //let slice: &[Color] = &self.data;
-            let slice: &[Color] = &self.canvas.get_data();
+            let slice: &[Color] = &self.canvas.get_draw_layer().get_data();
 
             // Unsafe conversion from &[u32] to &[u8]
             let byte_slice: &[u8] = unsafe {
