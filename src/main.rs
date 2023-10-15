@@ -122,12 +122,17 @@ impl eframe::App for AppContext {
             let mut primary_button = false;
             let mut origin = Pos2::new(0f32, 0f32);
             let mut current = Pos2::new(0f32, 0f32);
+            let mut ctrl_key = false;
+            let mut z_key = false;
+            let mut y_key = false;
             ctx.input(| s | {
                 middle_button = s.pointer.button_down(PointerButton::Middle);
                 primary_button = s.pointer.button_down(PointerButton::Primary);
                 origin = s.pointer.press_origin().unwrap_or_default();
                 current = s.pointer.latest_pos().unwrap_or_default();
-
+                ctrl_key = s.modifiers.ctrl;
+                z_key = s.key_pressed(egui::Key::Z);
+                y_key = s.key_pressed(egui::Key::Y);
             });
 
 
@@ -141,6 +146,7 @@ impl eframe::App for AppContext {
                 current.y -= rect.min.y;
 
             });
+            // if ctrl + z is pressed, print "undo"
 
             match self.paint_tools.get_mut(&self.selected_paint_tool) {
                 Some (value) => {
@@ -163,6 +169,13 @@ impl eframe::App for AppContext {
                                 self.tool_button_started = false;
                             }
                         }
+                    }
+
+                    if ctrl_key && z_key {
+                        self.canvas.undo();
+                    }
+                    if ctrl_key && y_key {
+                        self.canvas.redo();
                     }
                 }
                 None => {}

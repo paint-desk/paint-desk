@@ -73,8 +73,8 @@ impl Canvas {
 
     fn apply_command(&mut self, command : &EditCommand){
         self.layers.get_active_layer_mut().map(|active_canvas|{
-            command.apply(active_canvas);
             self.undo_stack.push(command.reverse(active_canvas));
+            command.apply(active_canvas);
         });
     }
 
@@ -102,15 +102,33 @@ impl Canvas {
 
     pub fn undo(&mut self){
         if let Some(command) = self.undo_stack.pop(){
-            self.apply_command(&command);
-            self.redo_stack.push(command);
+            if let Some(active_layer) = self.layers.get_active_layer_mut(){
+                self.redo_stack.push(command.reverse(active_layer));
+                command.apply(active_layer);
+            }
+
+            self.update_display_canvas();
+            println!("undo");
+            println!("undo_stack: {}", self.undo_stack.len());
+            println!("redo_stack: {}", self.redo_stack.len());
+        }
+        else {
+            println!("nothing to undo");
         }
     }
 
     pub fn redo(&mut self){
         if let Some(command) = self.redo_stack.pop(){
-            self.apply_command(&command);
-            self.undo_stack.push(command);
+            self.undo_stack.push(command.reverse(self.get_active_layer().unwrap()));
+            //self.apply_command(&command);
+            if let Some(active_layer) = self.layers.get_active_layer_mut(){
+                command.apply(active_layer);
+            }
+            self.update_display_canvas();
+
+            println!("redo");
+            println!("undo_stack: {}", self.undo_stack.len());
+            println!("redo_stack: {}", self.redo_stack.len());
         }
     }
 
@@ -211,7 +229,6 @@ impl PaintTool for PixelPencil {
     }
 
     fn stroke_update(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
-        tool_canvas.set_pixel(pixel_pos, self.color);
         if let Some(previous_point) = self.previous_point {
             let mut command = EditCommand::default();
             let mut x = previous_point.x as i32;
@@ -224,7 +241,6 @@ impl PaintTool for PixelPencil {
             let mut sy = if y < y2 { 1 } else { -1 };
             let mut err = dx - dy;
             loop {
-                command.edits.push((PixelPos{x: x as u32, y: y as u32}, self.color));
                 if x == x2 && y == y2 {
                     break;
                 }
@@ -237,8 +253,9 @@ impl PaintTool for PixelPencil {
                     err += dx;
                     y += sy;
                 }
+
+                tool_canvas.set_pixel(PixelPos{x: x as u32, y: y as u32}, self.color);
             }
-            _push_command(command);
         }
 
         self.previous_point = Some(pixel_pos);
@@ -250,6 +267,7 @@ impl PaintTool for PixelPencil {
         });
         push_command(command);
         tool_canvas.clear();
+        println!("command pushed");
 
         self.previous_point = None;
     }
