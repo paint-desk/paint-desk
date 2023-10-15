@@ -34,7 +34,7 @@ fn main() {
 
 //#[derive(Default)]
 struct AppContext {
-    start_time: f32,
+    start_time: Instant,
     frame_times: Vec<f32>,
     tool_button_started: bool,
     canvas: Canvas,
@@ -49,7 +49,7 @@ impl AppContext {
         // Use the cc.gl (a glow::Context) to create graphics shaders and buffers that you can use
         // for e.g. egui::PaintCallback.
         let mut app = AppContext {
-            start_time: 0f32,
+            start_time: Instant::now(),
             frame_times: Vec::new(),
             tool_button_started: false,
             canvas: Canvas::new(w, h),
@@ -80,9 +80,9 @@ impl AppContext {
     }
 
     fn get_fps(&mut self) -> f32 {
-        //let now = Instant::now();
-        let delta_time = 1f32;//now.duration_since(self.start_time).as_secs_f32();
-        self.start_time = 0f32;//now;
+        let now = Instant::now();
+        let delta_time = now.duration_since(self.start_time).as_secs_f32();
+        self.start_time = now;
         // Record frame time and calculate average FPS
         self.frame_times.push(1.0 / delta_time);
         if self.frame_times.len() > 10 {
@@ -98,7 +98,7 @@ impl eframe::App for AppContext {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Hello World!");
 
-            let fps = 0f32;//self.get_fps();
+            let fps = self.get_fps();
             ui.label(format!("FPS: {:.2}", fps));
 
             let size = self.canvas.get_size();
@@ -172,6 +172,6 @@ impl eframe::App for AppContext {
         });
 
         //self.fill();
-        //ctx.request_repaint();
+        ctx.request_repaint();
     }
 }
