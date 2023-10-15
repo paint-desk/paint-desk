@@ -36,7 +36,7 @@ fn main() {
 struct AppContext {
     start_time: f32,
     frame_times: Vec<f32>,
-
+    tool_button_started: bool,
     canvas: Canvas,
     paint_tools: HashMap<u32, Box<dyn PaintTool>>,
     selected_paint_tool: u32
@@ -51,12 +51,13 @@ impl AppContext {
         let mut app = AppContext {
             start_time: 0f32,
             frame_times: Vec::new(),
-
+            tool_button_started: false,
             canvas: Canvas::new(w, h),
             paint_tools: HashMap::new(),
             selected_paint_tool: 1
         };
         app.paint_tools.insert(1, Box::new(PixelPencil::new(Color::new(255, 0, 0, 255), 1)));
+
         app
     }
 
@@ -102,10 +103,9 @@ impl eframe::App for AppContext {
 
             let size = self.canvas.get_size();
 
-            //let slice: &[Color] = &self.data;
             let slice: &[Color] = &self.canvas.get_draw_layer().get_data();
 
-            // Unsafe conversion from &[u32] to &[u8]
+            // Unsafe conversion from &[Color] to &[u8]
             let byte_slice: &[u8] = unsafe {
                 std::slice::from_raw_parts(
                     slice.as_ptr() as *const u8,
@@ -131,10 +131,10 @@ impl eframe::App for AppContext {
             });
 
 
-            let mut drawing = false;
+            let mut contains = false;
             egui::ScrollArea::both().drag_to_scroll(middle_button).show(ui, |ui| {
                 let rect = ui.image(&texture).rect;
-                drawing = rect.contains(origin) && rect.contains(current) && primary_button;
+                contains = rect.contains(current);
                 origin.x -= rect.min.x;
                 origin.y -= rect.min.y;
                 current.x -= rect.min.x;
@@ -145,13 +145,30 @@ impl eframe::App for AppContext {
             match self.paint_tools.get_mut(&self.selected_paint_tool) {
                 Some (value) => {
                     let pixel = PixelPos{x:origin.x as u32, y:origin.y as u32};
-                    self.canvas.stroke_update(pixel, value.as_mut());
+
+                    if contains && !self.tool_button_started && primary_button {
+                        self.canvas.stroke_start(pixel, value.as_mut());
+                        println!("start: current:{},{}", current.x, current.y);
+                        self.tool_button_started = true;
+                    }
+                    else {
+                        if self.tool_button_started {
+                            if contains && primary_button {
+                                self.canvas.stroke_update(pixel, value.as_mut());
+                                println!("update: current:{},{}", current.x, current.y);
+                            }
+                            else {
+                                self.canvas.stroke_end(pixel, value.as_mut());
+                                println!("end: current:{},{}", current.x, current.y);
+                                self.tool_button_started = false;
+                            }
+                        }
+                    }
                 }
                 None => {}
             }
 
-
-            ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
+            //ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
         });
 
         //self.fill();
