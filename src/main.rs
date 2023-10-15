@@ -145,7 +145,7 @@ impl eframe::App for AppContext {
             match self.paint_tools.get_mut(&self.selected_paint_tool) {
                 Some (value) => {
                     let pixel = PixelPos{x:origin.x as u32, y:origin.y as u32};
-                    //value.stroke_update(pixel, |add_contents|{});
+                    self.canvas.stroke_update(pixel, value.as_mut());
                 }
                 None => {}
             }
