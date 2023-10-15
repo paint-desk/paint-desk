@@ -54,7 +54,7 @@ impl AppContext {
 
             canvas: FlatCanvasLayer::new(w, h),
             paint_tools: HashMap::new(),
-            selected_paint_tool: 0
+            selected_paint_tool: 1
         };
         app.paint_tools.insert(1, Box::new(PixelPencil::new(Color::new(255, 0, 0, 255), 1)));
         app
@@ -135,8 +135,13 @@ impl eframe::App for AppContext {
 
             });
 
-            //TODO:
-            //let mut tool = self.paint_tools.get_mut(&self.selected_paint_tool).unwrap_or_default();
+            match self.paint_tools.get_mut(&self.selected_paint_tool) {
+                Some (value) => {
+                    let pixel = PixelPos{x:origin.x as u32, y:origin.y as u32};
+                    //value.stroke_update(pixel, |add_contents|{});
+                }
+                None => {}
+            }
 
 
             ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
