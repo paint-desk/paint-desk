@@ -95,6 +95,22 @@ impl AppContext {
 
 impl eframe::App for AppContext {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        egui::SidePanel::left("left_panel").show(ctx, |ui| {
+            ui.heading("Tools");
+
+
+        });
+
+        egui::SidePanel::right("right_panel").show(ctx, |ui| {
+            if ui.button("Undo").clicked() {
+                self.canvas.undo();
+            };
+
+            if ui.button("Redo").clicked() {
+                self.canvas.redo();
+            };
+        });
+
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Hello World!");
 
