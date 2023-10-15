@@ -144,22 +144,22 @@ impl eframe::App for AppContext {
 
             match self.paint_tools.get_mut(&self.selected_paint_tool) {
                 Some (value) => {
-                    let pixel = PixelPos{x:origin.x as u32, y:origin.y as u32};
+                    let pixel = PixelPos{x:current.x as u32, y:current.y as u32};
 
                     if contains && !self.tool_button_started && primary_button {
                         self.canvas.stroke_start(pixel, value.as_mut());
-                        println!("start: current:{},{}", current.x, current.y);
+                        //println!("start: {},{}", pixel.x, pixel.y);
                         self.tool_button_started = true;
                     }
                     else {
                         if self.tool_button_started {
                             if contains && primary_button {
                                 self.canvas.stroke_update(pixel, value.as_mut());
-                                println!("update: current:{},{}", current.x, current.y);
+                                //println!("update: {},{}", pixel.x, pixel.y);
                             }
                             else {
                                 self.canvas.stroke_end(pixel, value.as_mut());
-                                println!("end: current:{},{}", current.x, current.y);
+                                //println!("end: {},{}", pixel.x, pixel.y);
                                 self.tool_button_started = false;
                             }
                         }
