@@ -62,16 +62,16 @@ impl Canvas {
     pub fn get_size(&self) -> (u32, u32) {
         self.size
     }
-    fn apply_commands(&mut self, commands : &Vec<EditCommand>){
+    fn apply_commands_handle_undo_redo(&mut self, commands : &Vec<EditCommand>){
         if commands.len() > 0 {
             self.redo_stack.clear();
         }
         commands.iter().for_each(|command|{
-            self.apply_command(command);
+            self.apply_command_handle_undo_redo(command);
         });
     }
 
-    fn apply_command(&mut self, command : &EditCommand){
+    fn apply_command_handle_undo_redo(&mut self, command : &EditCommand){
         self.layers.get_active_layer_mut().map(|active_canvas|{
             self.undo_stack.push(command.reverse(active_canvas));
             command.apply(active_canvas);
@@ -81,13 +81,13 @@ impl Canvas {
     pub fn stroke_start(&mut self, pixel_pos: PixelPos, tool : &mut dyn PaintTool){
         let mut commands = Vec::new();
         tool.stroke_start(pixel_pos, &mut self.tool_layer, &mut |command| commands.push(command));
-        self.apply_commands(&commands);
+        self.apply_commands_handle_undo_redo(&commands);
     }
 
     pub fn stroke_update(&mut self, pixel_pos: PixelPos, tool : &mut dyn PaintTool){
         let mut commands = Vec::new();
         tool.stroke_update(pixel_pos, &mut self.tool_layer, &mut |command| commands.push(command));
-        self.apply_commands(&commands);
+        self.apply_commands_handle_undo_redo(&commands);
 
         self.update_display_canvas();
     }
@@ -95,7 +95,7 @@ impl Canvas {
     pub fn stroke_end(&mut self, pixel_pos: PixelPos, tool : &mut dyn PaintTool){
         let mut commands = Vec::new();
         tool.stroke_end(pixel_pos, &mut self.tool_layer, &mut |command| commands.push(command));
-        self.apply_commands(&commands);
+        self.apply_commands_handle_undo_redo(&commands);
 
         self.update_display_canvas();
     }
