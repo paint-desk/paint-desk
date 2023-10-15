@@ -37,11 +37,14 @@ impl Canvas {
             active_canvas.clear();
             for wi in 0..w {
                 for hi in 0..h {
-                    active_canvas.set_pixel(PixelPos{x: wi, y: hi}, Color::new(255, 0, 0, 255));
+                    if wi==hi {
+                        active_canvas.set_pixel(PixelPos{x: wi, y: hi}, Color::new(255, 0, 0, 255));
+                    }
                 }
             }
 
         });
+        canvas.update_display_canvas();
 
         canvas
     }
