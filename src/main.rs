@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use eframe::egui;
 use eframe::epaint::textures::TextureOptions;
-use egui::{ColorImage, PointerButton, Pos2, Rect, Sense, Vec2};
+use egui::{Button, Color32, ColorImage, PointerButton, Pos2, Rect, Sense, Vec2};
 use crate::paint_app::app::{Canvas, PaintTool, PixelPencil};
 use crate::paint_app::canvas::{CanvasLayer, FlatCanvasLayer};
 use crate::paint_app::data_types::*;
@@ -38,6 +38,7 @@ struct AppContext {
     frame_times: Vec<f32>,
     tool_button_started: bool,
     canvas: Canvas,
+    global_params: GlobalParams,
     paint_tools: HashMap<u32, Box<dyn PaintTool>>,
     selected_paint_tool: u32
 }
@@ -53,6 +54,7 @@ impl AppContext {
             frame_times: Vec::new(),
             tool_button_started: false,
             canvas: Canvas::new(w, h),
+            global_params: GlobalParams::new(),
             paint_tools: HashMap::new(),
             selected_paint_tool: 1
         };
@@ -95,10 +97,25 @@ impl AppContext {
 
 impl eframe::App for AppContext {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+
+        let mut take_input: bool = true;
+
         egui::SidePanel::left("left_panel").show(ctx, |ui| {
             ui.heading("Tools");
 
+            let mut popup_open = false;
+            ui.memory(|mem|{popup_open = mem.any_popup_open()});
+            if popup_open {
+                take_input = false;
+            }
 
+            let mut color_primary = self.global_params.primary_color.to_color32();
+            ui.color_edit_button_srgba(&mut color_primary);
+            self.global_params.primary_color = Color::from_color32(&color_primary);
+
+            let mut color_secondary = self.global_params.secondary_color.to_color32();
+            ui.color_edit_button_srgba(&mut color_secondary);
+            self.global_params.secondary_color = Color::from_color32(&color_secondary);
         });
 
         egui::SidePanel::right("right_panel").show(ctx, |ui| {
@@ -141,7 +158,8 @@ impl eframe::App for AppContext {
             let mut ctrl_key = false;
             let mut z_key = false;
             let mut y_key = false;
-            ctx.input(| s | {
+
+            ctx.input(|s| {
                 middle_button = s.pointer.button_down(PointerButton::Middle);
                 primary_button = s.pointer.button_down(PointerButton::Primary);
                 origin = s.pointer.press_origin().unwrap_or_default();
@@ -150,7 +168,6 @@ impl eframe::App for AppContext {
                 z_key = s.key_pressed(egui::Key::Z);
                 y_key = s.key_pressed(egui::Key::Y);
             });
-
 
             let mut contains = false;
             egui::ScrollArea::both().drag_to_scroll(middle_button).show(ui, |ui| {
@@ -164,37 +181,34 @@ impl eframe::App for AppContext {
             });
             // if ctrl + z is pressed, print "undo"
 
-            match self.paint_tools.get_mut(&self.selected_paint_tool) {
-                Some (value) => {
-                    let pixel = PixelPos{x:current.x as u32, y:current.y as u32};
+            if take_input {
+                match self.paint_tools.get_mut(&self.selected_paint_tool) {
+                    Some(value) => {
+                        let pixel = PixelPos { x: current.x as u32, y: current.y as u32 };
 
-                    if contains && !self.tool_button_started && primary_button {
-                        self.canvas.stroke_start(pixel, value.as_mut());
-                        //println!("start: {},{}", pixel.x, pixel.y);
-                        self.tool_button_started = true;
-                    }
-                    else {
-                        if self.tool_button_started {
-                            if contains && primary_button {
-                                self.canvas.stroke_update(pixel, value.as_mut());
-                                //println!("update: {},{}", pixel.x, pixel.y);
-                            }
-                            else {
-                                self.canvas.stroke_end(pixel, value.as_mut());
-                                //println!("end: {},{}", pixel.x, pixel.y);
-                                self.tool_button_started = false;
+                        if contains && !self.tool_button_started && primary_button {
+                            self.canvas.stroke_start(pixel, value.as_mut());
+                            self.tool_button_started = true;
+                        } else {
+                            if self.tool_button_started {
+                                if contains && primary_button {
+                                    self.canvas.stroke_update(pixel, value.as_mut());
+                                } else {
+                                    self.canvas.stroke_end(pixel, value.as_mut());
+                                    self.tool_button_started = false;
+                                }
                             }
                         }
-                    }
 
-                    if ctrl_key && z_key {
-                        self.canvas.undo();
+                        if ctrl_key && z_key {
+                            self.canvas.undo();
+                        }
+                        if ctrl_key && y_key {
+                            self.canvas.redo();
+                        }
                     }
-                    if ctrl_key && y_key {
-                        self.canvas.redo();
-                    }
+                    None => {}
                 }
-                None => {}
             }
 
             //ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
