@@ -93,20 +93,19 @@ impl AppContext {
         let avg_fps = self.frame_times.iter().sum::<f32>() / self.frame_times.len() as f32;
         avg_fps
     }
-}
 
-impl eframe::App for AppContext {
-    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
-
-        let mut take_input: bool = true;
-
+    fn draw_menu_left(&mut self, ctx: &egui::Context, take_input: &mut bool) {
         egui::SidePanel::left("left_panel").show(ctx, |ui| {
             ui.heading("Tools");
 
             let mut popup_open = false;
             ui.memory(|mem|{popup_open = mem.any_popup_open()});
             if popup_open {
-                take_input = false;
+                *take_input = false;
+            }
+
+            if ui.small_button("Pencil").clicked() {
+                self.selected_paint_tool = 1;
             }
 
             let mut color_primary = self.global_params.primary_color.to_color32();
@@ -117,7 +116,9 @@ impl eframe::App for AppContext {
             ui.color_edit_button_srgba(&mut color_secondary);
             self.global_params.secondary_color = Color::from_color32(&color_secondary);
         });
+    }
 
+    fn draw_menu_right(&mut self, ctx: &egui::Context) {
         egui::SidePanel::right("right_panel").show(ctx, |ui| {
             if ui.button("Undo").clicked() {
                 self.canvas.undo();
@@ -127,7 +128,9 @@ impl eframe::App for AppContext {
                 self.canvas.redo();
             };
         });
+    }
 
+    fn draw_center(&mut self, ctx: &egui::Context, take_input: bool) -> egui::InnerResponse<()> {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Hello World!");
 
@@ -170,22 +173,27 @@ impl eframe::App for AppContext {
             });
 
             let mut contains = false;
-            egui::ScrollArea::both().drag_to_scroll(middle_button).show(ui, |ui| {
-                let rect = ui.image(&texture).rect;
-                contains = rect.contains(current);
-                origin.x -= rect.min.x;
-                origin.y -= rect.min.y;
-                current.x -= rect.min.x;
-                current.y -= rect.min.y;
-
+            let mut image_rect: Rect = Rect::from_two_pos(Pos2::new(0f32, 0f32), Pos2::new(0f32, 0f32));
+            let scroll_area = egui::ScrollArea::both().drag_to_scroll(middle_button).show(ui, |ui| {
+                image_rect = ui.image(&texture).rect;
             });
+            contains = scroll_area.inner_rect.contains(current);
+            origin.x -= image_rect.min.x;
+            origin.y -= image_rect.min.y;
+            current.x -= image_rect.min.x;
+            current.y -= image_rect.min.y;
+
             // if ctrl + z is pressed, print "undo"
 
             if take_input {
+                let pixel = PixelPos { x: current.x as u32, y: current.y as u32 };
+                self.global_params.current_pixel = match contains {
+                    true => Some(pixel),
+                    false => None
+                };
                 match self.paint_tools.get_mut(&self.selected_paint_tool) {
                     Some(value) => {
-                        let pixel = PixelPos { x: current.x as u32, y: current.y as u32 };
-
+                        
                         if contains && !self.tool_button_started && primary_button {
                             self.canvas.stroke_start(pixel, value.as_mut());
                             self.tool_button_started = true;
@@ -212,7 +220,31 @@ impl eframe::App for AppContext {
             }
 
             //ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
+        })
+    }
+}
+
+impl eframe::App for AppContext {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+
+        let mut take_input: bool = true;
+
+        self.draw_menu_left(ctx, &mut take_input);
+
+        self.draw_menu_right(ctx);
+
+        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            let pos = self.global_params.current_pixel;
+            match pos {
+                Some(value) => {
+                    ui.label(format!("{} x {}", value.x, value.y));
+                }
+                None => {}
+                
+            }
         });
+
+        self.draw_center(ctx, take_input);
 
         //self.fill();
         //ctx.request_repaint();

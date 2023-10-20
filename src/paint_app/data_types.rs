@@ -46,14 +46,16 @@ pub struct PixelPos {
 
 pub struct GlobalParams {
     pub primary_color: Color,
-    pub secondary_color: Color
+    pub secondary_color: Color,
+    pub current_pixel: Option<PixelPos>
 }
 
 impl GlobalParams {
     pub fn new() -> GlobalParams {
         GlobalParams {
             primary_color: Color::new(0, 0, 0, 255),
-            secondary_color: Color::new(255, 255, 255, 255)
+            secondary_color: Color::new(255, 255, 255, 255),
+            current_pixel: None
         }
     }
 }
