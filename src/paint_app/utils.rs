@@ -1,3 +1,4 @@
+use std::collections::hash_map::IntoIter;
 use super::data_types::*;
 
 fn blend_color(top: Color, bottom: Color) -> Color {
@@ -40,6 +41,45 @@ pub fn pixel_overlap(color_a : Color, color_b : Color) -> Color {
     );
 
     result
+}
+
+// return iterable of pixelpos, dont return vec
+pub fn rasterize_line(start : PixelPos, end : PixelPos) -> Vec<PixelPos> {
+    let mut result = Vec::new();
+    let mut x0 = start.x as i32;
+    let mut y0 = start.y as i32;
+    let mut x1 = end.x as i32;
+    let mut y1 = end.y as i32;
+
+    let mut steep = false;
+    if (x0-x1).abs() < (y0-y1).abs() {
+        std::mem::swap(&mut x0, &mut y0);
+        std::mem::swap(&mut x1, &mut y1);
+        steep = true;
+    }
+    if x0 > x1 {
+        std::mem::swap(&mut x0, &mut x1);
+        std::mem::swap(&mut y0, &mut y1);
+    }
+    let dx = x1-x0;
+    let dy = y1-y0;
+    let derror2 = dy.abs() * 2;
+    let mut error2 = 0;
+    let mut y = y0;
+    for x in x0..x1+1 {
+        if steep {
+            result.push(PixelPos{x: y as u32, y: x as u32});
+        } else {
+            result.push(PixelPos{x: x as u32, y: y as u32});
+        }
+        error2 += derror2;
+        if error2 > dx {
+            y += if y1 > y0 { 1 } else { -1 };
+            error2 -= dx * 2;
+        }
+    }
+    result
+
 }
 
 

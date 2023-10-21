@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use itertools::Itertools;
+use crate::paint_app::utils::rasterize_line;
 use super::data_types::*;
 use super::canvas::*;
 
@@ -230,32 +231,9 @@ impl PaintTool for PixelPencil {
 
     fn stroke_update(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         if let Some(previous_point) = self.previous_point {
-            let mut command = EditCommand::default();
-            let mut x = previous_point.x as i32;
-            let mut y = previous_point.y as i32;
-            let x2 = pixel_pos.x as i32;
-            let y2 = pixel_pos.y as i32;
-            let mut dx = (x2 - x).abs();
-            let mut dy = (y2 - y).abs();
-            let mut sx = if x < x2 { 1 } else { -1 };
-            let mut sy = if y < y2 { 1 } else { -1 };
-            let mut err = dx - dy;
-            loop {
-                if x == x2 && y == y2 {
-                    break;
-                }
-                let e2 = 2 * err;
-                if e2 > -dy {
-                    err -= dy;
-                    x += sx;
-                }
-                if e2 < dx {
-                    err += dx;
-                    y += sy;
-                }
-
-                tool_canvas.set_pixel(PixelPos{x: x as u32, y: y as u32}, self.color);
-            }
+            rasterize_line(previous_point, pixel_pos).iter().for_each(|pos|{
+                tool_canvas.set_pixel(*pos, self.color);
+            });
         }
 
         self.previous_point = Some(pixel_pos);
