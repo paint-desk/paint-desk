@@ -251,3 +251,43 @@ impl PaintTool for PixelPencil {
     }
 
 }
+
+pub struct LineTool {
+    color : Color,
+    line_start_point : Option<PixelPos>,
+}
+
+impl LineTool {
+    pub fn new(color : Color, _size : u32) -> LineTool {
+        LineTool {
+            color,
+            line_start_point : None,
+        }
+    }
+}
+
+impl PaintTool for LineTool {
+    fn stroke_start(&mut self, pixel_pos: PixelPos, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
+        self.line_start_point = Some(pixel_pos);
+    }
+
+    fn stroke_update(&mut self, _pixel_pos: PixelPos, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
+        _tool_canvas.clear();
+        rasterize_line(self.line_start_point.unwrap(), _pixel_pos).iter().for_each(|pos|{
+            _tool_canvas.set_pixel(*pos, self.color);
+        });
+    }
+    fn stroke_end(&mut self, pixel_pos: PixelPos, _tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
+        if let Some(line_start_point) = self.line_start_point {
+            let mut command = EditCommand::default();
+            rasterize_line(line_start_point, pixel_pos).iter().for_each(|pos|{
+                command.edits.push((*pos, self.color));
+            });
+            push_command(command);
+            println!("command pushed");
+        }
+        _tool_canvas.clear();
+        self.line_start_point = None;
+    }
+
+}

@@ -3,7 +3,7 @@ use std::time::Instant;
 use eframe::egui;
 use eframe::epaint::textures::TextureOptions;
 use egui::{Button, Color32, ColorImage, PointerButton, Pos2, Rect, Sense, Vec2};
-use crate::paint_app::app::{Canvas, PaintTool, PixelPencil};
+use crate::paint_app::app::{Canvas, LineTool, PaintTool, PixelPencil};
 use crate::paint_app::canvas::{CanvasLayer, FlatCanvasLayer};
 use crate::paint_app::data_types::*;
 
@@ -56,9 +56,10 @@ impl AppContext {
             canvas: Canvas::new(w, h),
             global_params: GlobalParams::new(),
             paint_tools: HashMap::new(),
-            selected_paint_tool: 1
+            selected_paint_tool: 2
         };
         app.paint_tools.insert(1, Box::new(PixelPencil::new(Color::new(255, 0, 0, 255), 1)));
+        app.paint_tools.insert(2, Box::new(LineTool::new(Color::new(0, 255, 0, 255), 1)));
 
         app
     }
@@ -106,6 +107,9 @@ impl AppContext {
 
             if ui.small_button("Pencil").clicked() {
                 self.selected_paint_tool = 1;
+            }
+            if ui.small_button("Line").clicked() {
+                self.selected_paint_tool = 2;
             }
 
             let mut color_primary = self.global_params.primary_color.to_color32();
