@@ -37,6 +37,7 @@ struct AppContext {
     start_time: f32,
     frame_times: Vec<f32>,
     tool_button_started: bool,
+    primary_button: bool,
     canvas: Canvas,
     global_params: GlobalParams,
     paint_tools: HashMap<u32, Box<dyn PaintTool>>,
@@ -53,6 +54,7 @@ impl AppContext {
             start_time: 0f32,
             frame_times: Vec::new(),
             tool_button_started: false,
+            primary_button: false,
             canvas: Canvas::new(w, h),
             global_params: GlobalParams::new(),
             paint_tools: HashMap::new(),
@@ -77,7 +79,7 @@ impl AppContext {
         avg_fps
     }
 
-    fn draw_menu_left(&mut self, ctx: &egui::Context, take_input: &mut bool) {
+    fn draw_panel_left(&mut self, ctx: &egui::Context, take_input: &mut bool) {
         egui::SidePanel::left("left_panel").show(ctx, |ui| {
             ui.heading("Tools");
 
@@ -104,7 +106,7 @@ impl AppContext {
         });
     }
 
-    fn draw_menu_right(&mut self, ctx: &egui::Context) {
+    fn draw_panel_right(&mut self, ctx: &egui::Context) {
         egui::SidePanel::right("right_panel").show(ctx, |ui| {
             if ui.button("Undo").clicked() {
                 self.canvas.undo();
@@ -141,8 +143,6 @@ impl AppContext {
 
 
             let mut middle_button = false;
-            let mut primary_button = false;
-            let mut origin = Pos2::new(0f32, 0f32);
             let mut current = Pos2::new(0f32, 0f32);
             let mut ctrl_key = false;
             let mut z_key = false;
@@ -150,63 +150,75 @@ impl AppContext {
 
             ctx.input(|s| {
                 middle_button = s.pointer.button_down(PointerButton::Middle);
-                primary_button = s.pointer.button_down(PointerButton::Primary);
-                origin = s.pointer.press_origin().unwrap_or_default();
+                self.primary_button = s.pointer.button_down(PointerButton::Primary);
                 current = s.pointer.latest_pos().unwrap_or_default();
                 ctrl_key = s.modifiers.ctrl;
                 z_key = s.key_pressed(egui::Key::Z);
                 y_key = s.key_pressed(egui::Key::Y);
             });
 
-            let mut contains = false;
             let mut image_rect: Rect = Rect::from_two_pos(Pos2::new(0f32, 0f32), Pos2::new(0f32, 0f32));
             let scroll_area = egui::ScrollArea::both().drag_to_scroll(middle_button).show(ui, |ui| {
                 image_rect = ui.image(&texture).rect;
             });
-            contains = scroll_area.inner_rect.contains(current);
-            origin.x -= image_rect.min.x;
-            origin.y -= image_rect.min.y;
+            self.global_params.cursor_in_canvas = scroll_area.inner_rect.contains(current);
             current.x -= image_rect.min.x;
             current.y -= image_rect.min.y;
 
-            // if ctrl + z is pressed, print "undo"
-
             if take_input {
                 let pixel = PixelPos { x: current.x as u32, y: current.y as u32 };
-                self.global_params.current_pixel = match contains {
+                self.global_params.current_pixel = match self.global_params.cursor_in_canvas {
                     true => Some(pixel),
                     false => None
                 };
-                match self.paint_tools.get_mut(&self.selected_paint_tool) {
-                    Some(value) => {
-                        
-                        if contains && !self.tool_button_started && primary_button {
-                            self.canvas.stroke_start(&self.global_params, value.as_mut());
-                            self.tool_button_started = true;
-                        } else {
-                            if self.tool_button_started {
-                                if contains && primary_button {
-                                    self.canvas.stroke_update(&self.global_params, value.as_mut());
-                                } else {
-                                    self.canvas.stroke_end(&self.global_params, value.as_mut());
-                                    self.tool_button_started = false;
-                                }
-                            }
-                        }
+            }
 
-                        if ctrl_key && z_key {
-                            self.canvas.undo();
-                        }
-                        if ctrl_key && y_key {
-                            self.canvas.redo();
-                        }
-                    }
-                    None => {}
-                }
+            if ctrl_key && z_key {
+                self.canvas.undo();
+            }
+            if ctrl_key && y_key {
+                self.canvas.redo();
             }
 
             //ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
         })
+    }
+
+    fn handle_tool_events(&mut self) {
+        match self.paint_tools.get_mut(&self.selected_paint_tool) {
+            Some(value) => {
+                let contains = self.global_params.cursor_in_canvas;
+                if contains && !self.tool_button_started && self.primary_button {
+                    self.canvas.stroke_start(&self.global_params, value.as_mut());
+                    self.tool_button_started = true;
+                } else {
+                    if self.tool_button_started {
+                        if contains && self.primary_button {
+                            self.canvas.stroke_update(&self.global_params, value.as_mut());
+                        } else {
+                            self.canvas.stroke_end(&self.global_params, value.as_mut());
+                            self.tool_button_started = false;
+                        }
+                    }
+                }
+
+                
+            }
+            None => {}
+        }
+    }
+
+    fn draw_panel_bottom(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
+            let pos = self.global_params.current_pixel;
+            match pos {
+                Some(value) => {
+                    ui.label(format!("{} x {}", value.x, value.y));
+                }
+                None => {}
+        
+            }
+        });
     }
 }
 
@@ -215,24 +227,16 @@ impl eframe::App for AppContext {
 
         let mut take_input: bool = true;
 
-        self.draw_menu_left(ctx, &mut take_input);
+        self.draw_panel_left(ctx, &mut take_input);
 
-        self.draw_menu_right(ctx);
+        self.draw_panel_right(ctx);
 
-        egui::TopBottomPanel::bottom("bottom_panel").show(ctx, |ui| {
-            let pos = self.global_params.current_pixel;
-            match pos {
-                Some(value) => {
-                    ui.label(format!("{} x {}", value.x, value.y));
-                }
-                None => {}
-                
-            }
-        });
-
+        self.draw_panel_bottom(ctx);
+        
         self.draw_center(ctx, take_input);
 
-        //self.fill();
+        self.handle_tool_events();
+
         //ctx.request_repaint();
     }
 }

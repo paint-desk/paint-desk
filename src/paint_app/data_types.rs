@@ -55,6 +55,7 @@ pub struct PixelPos {
 pub struct GlobalParams {
     pub primary_color: Color,
     pub secondary_color: Color,
+    pub cursor_in_canvas: bool,
     pub current_pixel: Option<PixelPos>
 }
 
@@ -63,6 +64,7 @@ impl GlobalParams {
         GlobalParams {
             primary_color: Color::new(0, 0, 0, 255),
             secondary_color: Color::new(255, 255, 255, 255),
+            cursor_in_canvas: false,
             current_pixel: None
         }
     }

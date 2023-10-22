@@ -261,7 +261,7 @@ impl PaintTool for LineTool {
 
     fn stroke_update(&mut self, global_params: &GlobalParams, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         _tool_canvas.clear();
-        rasterize_line(self.line_start_point.unwrap(), global_params.current_pixel.unwrap_or_default()).iter().for_each(|pos|{
+        rasterize_line(self.line_start_point.unwrap_or_default(), global_params.current_pixel.unwrap_or_default()).iter().for_each(|pos|{
             _tool_canvas.set_pixel(*pos, global_params.primary_color);
         });
     }
