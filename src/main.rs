@@ -117,17 +117,14 @@ impl AppContext {
                 ui.label("Current tool extra settings");
                 ui.spacing();
                 ui.separator();
+                
                 ui.heading("Layers");
-                ui.vertical(|ui| {
-                    ui.horizontal(|ui| {
-                        ui.label("Background");
-                        ui.checkbox(&mut checked, "");
-                    });
-                    ui.horizontal(|ui| {
-                        ui.label("Foreground");
-                        ui.checkbox(&mut checked, "");
-                    });
-                });
+
+                //TODO: add real layer list
+                let mut checked = false;
+                ui.checkbox(&mut checked, "Layer 1");
+                ui.checkbox(&mut checked, "Layer 2");
+                
             });
         });
     }
