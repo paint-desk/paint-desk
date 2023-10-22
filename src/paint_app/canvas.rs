@@ -7,6 +7,7 @@ pub trait CanvasLayer {
     fn set_pixel(&mut self, pixel_pos: PixelPos, color: Color);
     fn apply_to_canvas(&self, target_canvas: &mut dyn CanvasLayer);
     fn clear(&mut self);
+    fn fill(&mut self, color: Color);
     fn get_size(&self) -> (u32, u32);
 }
 
@@ -47,8 +48,12 @@ impl CanvasLayer for FlatCanvasLayer {
     }
 
     fn clear(&mut self) {
+        self.fill(Color::white());
+    }
+
+    fn fill(&mut self, color: Color) {
         for i in 0..self.width as usize * self.height as usize {
-            self.data[i] = Color::new(0, 0, 0, 0);
+            self.data[i] = color;
         }
     }
 
@@ -99,6 +104,9 @@ impl CanvasLayer for HashMapCanvasLayer {
 
     fn clear(&mut self) {
         self.data.clear();
+    }
+
+    fn fill(&mut self, color: Color) {        
     }
 
     fn get_size(&self) -> (u32, u32) {

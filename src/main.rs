@@ -58,28 +58,10 @@ impl AppContext {
             paint_tools: HashMap::new(),
             selected_paint_tool: 2
         };
-        app.paint_tools.insert(1, Box::new(PixelPencil::new(Color::new(255, 0, 0, 255), 1)));
-        app.paint_tools.insert(2, Box::new(LineTool::new(Color::new(0, 255, 0, 255), 1)));
+        app.paint_tools.insert(1, Box::new(PixelPencil::new()));
+        app.paint_tools.insert(2, Box::new(LineTool::new()));
 
         app
-    }
-
-
-    fn fill(&mut self)
-    {
-        let size = self.canvas.get_size();
-        for x in 0..size.0 {
-            for y in 0..size.1 {
-                match self.canvas.get_active_layer_mut() {
-                    Some(layer) => {
-                        layer.set_pixel(PixelPos {x, y}, Color::new(255, 255, 0, 255));
-                    }
-                    None => {
-                        println!("no active layer");
-                    }
-                }
-            }
-        }
     }
 
     fn get_fps(&mut self) -> f32 {
@@ -199,14 +181,14 @@ impl AppContext {
                     Some(value) => {
                         
                         if contains && !self.tool_button_started && primary_button {
-                            self.canvas.stroke_start(pixel, value.as_mut());
+                            self.canvas.stroke_start(&self.global_params, value.as_mut());
                             self.tool_button_started = true;
                         } else {
                             if self.tool_button_started {
                                 if contains && primary_button {
-                                    self.canvas.stroke_update(pixel, value.as_mut());
+                                    self.canvas.stroke_update(&self.global_params, value.as_mut());
                                 } else {
-                                    self.canvas.stroke_end(pixel, value.as_mut());
+                                    self.canvas.stroke_end(&self.global_params, value.as_mut());
                                     self.tool_button_started = false;
                                 }
                             }

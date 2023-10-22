@@ -16,6 +16,14 @@ impl Color {
         }
     }
 
+    pub fn white() -> Color {
+        Color::new(255, 255, 255, 255)
+    }
+
+    pub fn black() -> Color {
+        Color::new(0, 0, 0, 255)
+    }
+
     pub fn to(&self) -> u32 {
         unsafe {
             std::mem::transmute(*self)
@@ -38,7 +46,7 @@ impl Color {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, Eq, Hash, PartialEq)]
 pub struct PixelPos {
     pub x: u32,
     pub y: u32

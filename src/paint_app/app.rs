@@ -35,15 +35,7 @@ impl Canvas {
         });
         canvas.layers.active_layer_id = LayerId(0);
         canvas.get_active_layer_mut().map(|active_canvas|{
-            active_canvas.clear();
-            for wi in 0..w {
-                for hi in 0..h {
-                    if wi==hi {
-                        active_canvas.set_pixel(PixelPos{x: wi, y: hi}, Color::new(255, 0, 0, 255));
-                    }
-                }
-            }
-
+            active_canvas.fill(Color::white());
         });
         canvas.update_display_canvas();
 
@@ -79,23 +71,23 @@ impl Canvas {
         });
     }
 
-    pub fn stroke_start(&mut self, pixel_pos: PixelPos, tool : &mut dyn PaintTool){
+    pub fn stroke_start(&mut self, global_params: &GlobalParams, tool : &mut dyn PaintTool){
         let mut commands = Vec::new();
-        tool.stroke_start(pixel_pos, &mut self.tool_layer, &mut |command| commands.push(command));
+        tool.stroke_start(global_params, &mut self.tool_layer, &mut |command| commands.push(command));
         self.apply_commands_handle_undo_redo(&commands);
     }
 
-    pub fn stroke_update(&mut self, pixel_pos: PixelPos, tool : &mut dyn PaintTool){
+    pub fn stroke_update(&mut self, global_params: &GlobalParams, tool : &mut dyn PaintTool){
         let mut commands = Vec::new();
-        tool.stroke_update(pixel_pos, &mut self.tool_layer, &mut |command| commands.push(command));
+        tool.stroke_update(global_params, &mut self.tool_layer, &mut |command| commands.push(command));
         self.apply_commands_handle_undo_redo(&commands);
 
         self.update_display_canvas();
     }
 
-    pub fn stroke_end(&mut self, pixel_pos: PixelPos, tool : &mut dyn PaintTool){
+    pub fn stroke_end(&mut self, global_params: &GlobalParams, tool : &mut dyn PaintTool){
         let mut commands = Vec::new();
-        tool.stroke_end(pixel_pos, &mut self.tool_layer, &mut |command| commands.push(command));
+        tool.stroke_end(global_params, &mut self.tool_layer, &mut |command| commands.push(command));
         self.apply_commands_handle_undo_redo(&commands);
 
         self.update_display_canvas();
@@ -201,19 +193,17 @@ impl EditCommand {
 
 pub trait PaintTool{
     // pass a function to push commands to
-    fn stroke_start(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
-    fn stroke_update(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
-    fn stroke_end(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
+    fn stroke_start(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
+    fn stroke_update(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
+    fn stroke_end(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
 
 }
 pub struct PixelPencil {
-    color : Color,
     previous_point : Option<PixelPos>,
 }
 impl PixelPencil {
-    pub fn new(color : Color, _size : u32) -> PixelPencil {
+    pub fn new() -> PixelPencil {
         PixelPencil {
-            color,
             previous_point : None,
         }
     }
@@ -224,21 +214,21 @@ impl PaintTool for PixelPencil {
     //    tool_canvas.clear();
     //}
     // like that but push_command should be of type Action<EditCommand> in c#
-    fn stroke_start(&mut self, _pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_start(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         tool_canvas.clear();
         self.previous_point = None;
     }
 
-    fn stroke_update(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_update(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         if let Some(previous_point) = self.previous_point {
-            rasterize_line(previous_point, pixel_pos).iter().for_each(|pos|{
-                tool_canvas.set_pixel(*pos, self.color);
+            rasterize_line(previous_point, global_params.current_pixel.unwrap_or_default()).iter().for_each(|pos|{
+                tool_canvas.set_pixel(*pos, global_params.primary_color);
             });
         }
 
-        self.previous_point = Some(pixel_pos);
+        self.previous_point = global_params.current_pixel;
     }
-    fn stroke_end(&mut self, _pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_end(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
         let mut command = EditCommand::default();
         tool_canvas.pixels_iter().for_each(|(pos, color)|{
             command.edits.push((*pos, *color));
@@ -253,35 +243,33 @@ impl PaintTool for PixelPencil {
 }
 
 pub struct LineTool {
-    color : Color,
     line_start_point : Option<PixelPos>,
 }
 
 impl LineTool {
-    pub fn new(color : Color, _size : u32) -> LineTool {
+    pub fn new() -> LineTool {
         LineTool {
-            color,
             line_start_point : None,
         }
     }
 }
 
 impl PaintTool for LineTool {
-    fn stroke_start(&mut self, pixel_pos: PixelPos, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
-        self.line_start_point = Some(pixel_pos);
+    fn stroke_start(&mut self, global_params: &GlobalParams, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
+        self.line_start_point = global_params.current_pixel;
     }
 
-    fn stroke_update(&mut self, _pixel_pos: PixelPos, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_update(&mut self, global_params: &GlobalParams, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         _tool_canvas.clear();
-        rasterize_line(self.line_start_point.unwrap(), _pixel_pos).iter().for_each(|pos|{
-            _tool_canvas.set_pixel(*pos, self.color);
+        rasterize_line(self.line_start_point.unwrap(), global_params.current_pixel.unwrap_or_default()).iter().for_each(|pos|{
+            _tool_canvas.set_pixel(*pos, global_params.primary_color);
         });
     }
-    fn stroke_end(&mut self, pixel_pos: PixelPos, _tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
+    fn stroke_end(&mut self, global_params: &GlobalParams, _tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand)){
         if let Some(line_start_point) = self.line_start_point {
             let mut command = EditCommand::default();
-            rasterize_line(line_start_point, pixel_pos).iter().for_each(|pos|{
-                command.edits.push((*pos, self.color));
+            rasterize_line(line_start_point, global_params.current_pixel.unwrap_or_default()).iter().for_each(|pos|{
+                command.edits.push((*pos, global_params.primary_color));
             });
             push_command(command);
             println!("command pushed");
