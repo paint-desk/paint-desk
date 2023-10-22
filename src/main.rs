@@ -89,11 +89,11 @@ impl AppContext {
                 *take_input = false;
             }
 
-            if ui.small_button("Pencil").clicked() {
-                self.selected_paint_tool = 1;
-            }
-            if ui.small_button("Line").clicked() {
-                self.selected_paint_tool = 2;
+            //Fill tool box
+            for (key, value) in self.paint_tools.iter() {
+                if ui.selectable_label(self.selected_paint_tool == *key, value.get_name()).clicked() {
+                    self.selected_paint_tool = *key;
+                }
             }
 
             let mut color_primary = self.global_params.primary_color.to_color32();

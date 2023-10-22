@@ -191,7 +191,9 @@ impl EditCommand {
     }
 }
 
-pub trait PaintTool{
+pub trait PaintTool {
+    fn get_name(&self) -> &str;
+
     // pass a function to push commands to
     fn stroke_start(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
     fn stroke_update(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, push_command : &mut dyn FnMut(EditCommand));
@@ -199,20 +201,23 @@ pub trait PaintTool{
 
 }
 pub struct PixelPencil {
+    name: String,
     previous_point : Option<PixelPos>,
 }
 impl PixelPencil {
     pub fn new() -> PixelPencil {
         PixelPencil {
-            previous_point : None,
+            name: "Pencil".to_string(),
+            previous_point : None
         }
     }
 }
 
 impl PaintTool for PixelPencil {
-    //fn stroke_start(&mut self, pixel_pos: PixelPos, tool_canvas : &mut HashMapCanvas, push_command : &mut Vec<EditCommand>){
-    //    tool_canvas.clear();
-    //}
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+
     // like that but push_command should be of type Action<EditCommand> in c#
     fn stroke_start(&mut self, global_params: &GlobalParams, tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         tool_canvas.clear();
@@ -243,18 +248,24 @@ impl PaintTool for PixelPencil {
 }
 
 pub struct LineTool {
+    name: String,
     line_start_point : Option<PixelPos>,
 }
 
 impl LineTool {
     pub fn new() -> LineTool {
         LineTool {
+            name: "Line".to_string(),
             line_start_point : None,
         }
     }
 }
 
 impl PaintTool for LineTool {
+    fn get_name(&self) -> &str {
+        &self.name
+    }
+    
     fn stroke_start(&mut self, global_params: &GlobalParams, _tool_canvas : &mut HashMapCanvasLayer, _push_command : &mut dyn FnMut(EditCommand)){
         self.line_start_point = global_params.current_pixel;
     }
