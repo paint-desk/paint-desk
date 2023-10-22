@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::time::Instant;
 use eframe::egui;
 use eframe::epaint::textures::TextureOptions;
-use egui::{Button, Color32, ColorImage, PointerButton, Pos2, Rect, Sense, Vec2};
+use egui::{Button, Color32, ColorImage, PointerButton, Pos2, Rect, Sense, Vec2, menu};
 use crate::paint_app::app::{Canvas, LineTool, PaintTool, PixelPencil};
 use crate::paint_app::canvas::{CanvasLayer, FlatCanvasLayer};
 use crate::paint_app::data_types::*;
@@ -108,13 +108,25 @@ impl AppContext {
 
     fn draw_panel_right(&mut self, ctx: &egui::Context) {
         egui::SidePanel::right("right_panel").show(ctx, |ui| {
-            if ui.button("Undo").clicked() {
-                self.canvas.undo();
-            };
-
-            if ui.button("Redo").clicked() {
-                self.canvas.redo();
-            };
+            let mut checked = false;
+            ui.vertical(|ui| {
+                ui.heading("Tool");
+                ui.separator();
+                ui.label("Current tool extra settings");
+                ui.spacing();
+                ui.heading("Layers");
+                ui.separator();
+                ui.vertical(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Background");
+                        ui.checkbox(&mut checked, "");
+                    });
+                    ui.horizontal(|ui| {
+                        ui.label("Foreground");
+                        ui.checkbox(&mut checked, "");
+                    });
+                });
+            });
         });
     }
 
@@ -220,12 +232,31 @@ impl AppContext {
             }
         });
     }
+
+    fn draw_panel_top(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            menu::bar(ui, |ui| {
+                ui.menu_button("Edit", |ui| {
+                    if ui.button("Undo").clicked() {
+                        ui.close_menu();
+                        self.canvas.undo();
+                    }
+                    if ui.button("Redo").clicked() {
+                        ui.close_menu();
+                        self.canvas.redo();
+                    }
+                });
+            });
+        });
+    }
 }
 
 impl eframe::App for AppContext {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
 
         let mut take_input: bool = true;
+
+        self.draw_panel_top(ctx);
 
         self.draw_panel_left(ctx, &mut take_input);
 
