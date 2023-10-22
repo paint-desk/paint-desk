@@ -58,7 +58,7 @@ impl AppContext {
             canvas: Canvas::new(w, h),
             global_params: GlobalParams::new(),
             paint_tools: HashMap::new(),
-            selected_paint_tool: 2
+            selected_paint_tool: 1
         };
         app.paint_tools.insert(1, Box::new(PixelPencil::new()));
         app.paint_tools.insert(2, Box::new(LineTool::new()));
@@ -96,6 +96,9 @@ impl AppContext {
                 }
             }
 
+            ui.separator();
+
+            ui.heading("Color");
             let mut color_primary = self.global_params.primary_color.to_color32();
             ui.color_edit_button_srgba(&mut color_primary);
             self.global_params.primary_color = Color::from_color32(&color_primary);
@@ -111,11 +114,10 @@ impl AppContext {
             let mut checked = false;
             ui.vertical(|ui| {
                 ui.heading("Tool");
-                ui.separator();
                 ui.label("Current tool extra settings");
                 ui.spacing();
-                ui.heading("Layers");
                 ui.separator();
+                ui.heading("Layers");
                 ui.vertical(|ui| {
                     ui.horizontal(|ui| {
                         ui.label("Background");
@@ -132,11 +134,6 @@ impl AppContext {
 
     fn draw_center(&mut self, ctx: &egui::Context, take_input: bool) -> egui::InnerResponse<()> {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Hello World!");
-
-            let fps = 0f32;//self.get_fps();
-            ui.label(format!("FPS: {:.2}", fps));
-
             let size = self.canvas.get_size();
 
             let slice: &[Color] = &self.canvas.get_draw_layer().get_data();
@@ -236,6 +233,19 @@ impl AppContext {
     fn draw_panel_top(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
             menu::bar(ui, |ui| {
+                ui.menu_button("File", |ui| {
+                    if ui.button("Open (TODO)").clicked() {
+                        ui.close_menu();
+                        //TODO: open file
+                        //This will be handled differently for web and native
+                    }
+                    if ui.button("Save (TODO)").clicked() {
+                        ui.close_menu();
+                        //TODO: save file
+                        //This will be handled differently for web and native
+                    }
+                });
+
                 ui.menu_button("Edit", |ui| {
                     if ui.button("Undo").clicked() {
                         ui.close_menu();
@@ -244,6 +254,18 @@ impl AppContext {
                     if ui.button("Redo").clicked() {
                         ui.close_menu();
                         self.canvas.redo();
+                    }
+
+                    ui.separator();
+
+                    if ui.button("Canvas size... (TODO)").clicked() {
+                        ui.close_menu();
+                        //TODO: open canvas size dialog
+                    }
+
+                    if ui.button("Resize... (TODO)").clicked() {
+                        ui.close_menu();
+                        //TODO: open resize dialog
                     }
                 });
             });
