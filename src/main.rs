@@ -2,10 +2,11 @@ use std::collections::HashMap;
 use std::time::Instant;
 use eframe::egui;
 use eframe::epaint::textures::TextureOptions;
-use egui::{Button, Color32, ColorImage, PointerButton, Pos2, Rect, Sense, Vec2, menu};
-use crate::paint_app::app::{Canvas, LineTool, PaintTool, PixelPencil};
-use crate::paint_app::canvas::{CanvasLayer, FlatCanvasLayer};
+use egui::{Button, Color32, ColorImage, PointerButton, Pos2, Rect, Sense, Vec2, menu, WidgetText};
+use crate::paint_app::canvas::{Canvas, CanvasLayerEntry, LayerConfig, LayerId, LineTool, PaintTool, PixelPencil};
+use crate::paint_app::canvas_layer::{CanvasLayer, FlatCanvasLayer};
 use crate::paint_app::data_types::*;
+use egui_dnd::*;
 
 mod paint_app;
 
@@ -41,7 +42,7 @@ struct AppContext {
     canvas: Canvas,
     global_params: GlobalParams,
     paint_tools: HashMap<u32, Box<dyn PaintTool>>,
-    selected_paint_tool: u32
+    selected_paint_tool: u32,
 }
 
 impl AppContext {
@@ -58,7 +59,7 @@ impl AppContext {
             canvas: Canvas::new(w, h),
             global_params: GlobalParams::new(),
             paint_tools: HashMap::new(),
-            selected_paint_tool: 1
+            selected_paint_tool: 1,
         };
         app.paint_tools.insert(1, Box::new(PixelPencil::new()));
         app.paint_tools.insert(2, Box::new(LineTool::new()));
@@ -120,10 +121,38 @@ impl AppContext {
                 
                 ui.heading("Layers");
 
+                let mut canvas_layers_config = self.canvas.get_canvas_layers_config();
+                let layers = &mut canvas_layers_config.entries;
+                let active_layer_id =  &mut canvas_layers_config.active_layer_id;
+
+                ui.vertical(|ui| {
+                    dnd(ui, "2dnd_example2")
+                        .show_vec(layers, |ui, item, handle, _state| {
+                            handle.ui(ui, |ui| {
+                                ui.horizontal(|ui| {
+                                    ui.horizontal(|ui| {
+                                        ui.label(format!("layer: {}", item.id.0));
+                                        ui.checkbox(&mut item.visible, "visible");
+                                        // tickbox
+                                        let mut active = *active_layer_id == item.id;
+                                        ui.checkbox(&mut active, "active");
+                                        if active {
+                                            *active_layer_id = item.id;
+                                        }
+                                    });
+                                    //ui.image(&texture_id);
+                                });
+                            });
+                        });
+                });
+
+                self.canvas.set_canvas_layers_config(canvas_layers_config);
+
+
                 //TODO: add real layer list
-                let mut checked = false;
-                ui.checkbox(&mut checked, "Layer 1");
-                ui.checkbox(&mut checked, "Layer 2");
+                //let mut checked = false;
+                //ui.checkbox(&mut checked, "Layer 1");
+                //ui.checkbox(&mut checked, "Layer 2");
                 
             });
         });
@@ -288,5 +317,25 @@ impl eframe::App for AppContext {
         self.handle_tool_events();
 
         //ctx.request_repaint();
+    }
+}
+
+//impl Into<WidgetText> for LayerConfig {
+//    fn into(self) -> WidgetText {
+//        let layer_str = self.id.0.to_string();
+//
+//        // layer : layer_str
+//        let final_str = format!("layer : {}", layer_str);
+//        WidgetText::from(final_str)
+//    }
+//}
+
+impl Into<WidgetText> for CanvasLayerEntry {
+    fn into(self) -> WidgetText {
+        let layer_str = self.id.0.to_string();
+
+        // layer : layer_str
+        let final_str = format!("layer : {}", layer_str);
+        WidgetText::from(final_str)
     }
 }

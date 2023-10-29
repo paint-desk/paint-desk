@@ -16,6 +16,18 @@ impl Color {
         }
     }
 
+    // don use float
+    pub fn interpolate(&self, other: &Color, t: u8) -> Color {
+        let t = t as u16;
+        let t_inv = 255 - t;
+        Color {
+            red: ((self.red as u16 * t + other.red as u16 * t_inv) / 255) as u8,
+            green: ((self.green as u16 * t + other.green as u16 * t_inv) / 255) as u8,
+            blue: ((self.blue as u16 * t + other.blue as u16 * t_inv) / 255) as u8,
+            alpha: ((self.alpha as u16 * t + other.alpha as u16 * t_inv) / 255) as u8
+        }
+    }
+
     pub fn white() -> Color {
         Color::new(255, 255, 255, 255)
     }
