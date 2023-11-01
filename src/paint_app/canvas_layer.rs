@@ -2,6 +2,18 @@ use std::collections::HashMap;
 use crate::paint_app::utils::pixel_overlap;
 use super::data_types::*;
 
+enum SideHorizontal {
+    center,
+    left,
+    right
+}
+
+enum SideVertical {
+    center,
+    top,
+    bottom
+}
+
 
 pub trait CanvasLayer {
     fn get_pixel(&self, pixel_pos: PixelPos) -> Color;
@@ -10,6 +22,7 @@ pub trait CanvasLayer {
     fn clear(&mut self);
     fn fill(&mut self, color: Color);
     fn get_size(&self) -> (u32, u32);
+    fn set_size(&mut self, width: u32, height: u32, keep_horizontal: SideHorizontal, keep_vertical: SideVertical);
 }
 
 pub struct FlatCanvasLayer {
@@ -84,6 +97,49 @@ impl CanvasLayer for FlatCanvasLayer {
     fn get_size(&self) -> (u32, u32) {
         (self.width, self.height)
     }
+
+    fn set_size(&mut self, width: u32, height: u32, keep_horizontal: SideHorizontal, keep_vertical: SideVertical) {
+        let mut new_data = vec!(Color::new(255, 255, 255, 0); (width * height) as usize);
+        let mut new_width = width;
+        let mut new_height = height;
+        let mut x_offset = 0;
+        let mut y_offset = 0;
+        match keep_horizontal {
+            SideHorizontal::center => {
+                x_offset = ((width - self.width) / 2) as usize;
+            },
+            SideHorizontal::left => {
+                x_offset = 0;
+            },
+            SideHorizontal::right => {
+                x_offset = (width - self.width) as usize;
+            }
+        }
+        match keep_vertical {
+            SideVertical::center => {
+                y_offset = ((height - self.height) / 2) as usize;
+            },
+            SideVertical::top => {
+                y_offset = 0;
+            },
+            SideVertical::bottom => {
+                y_offset = (height - self.height) as usize;
+            }
+        }
+        for x in 0..self.width {
+            for y in 0..self.height {
+                let new_x = x + x_offset as u32;
+                let new_y = y + y_offset as u32;
+                if new_x < width && new_y < height {
+                    new_data[(new_x + new_y * width) as usize] = self.get_pixel(PixelPos{x, y});
+                }
+            }
+        }
+        self.data = new_data;
+        self.width = new_width;
+        self.height = new_height;
+    
+    }
 }
 
 pub struct HashMapCanvasLayer {
@@ -140,5 +196,9 @@ impl CanvasLayer for HashMapCanvasLayer {
 
     fn get_size(&self) -> (u32, u32) {
         (self.width, self.height)
+    }
+
+    fn set_size(&mut self, width: u32, height: u32, keep_horizontal: SideHorizontal, keep_vertical: SideVertical) {
+
     }
 }
