@@ -239,7 +239,7 @@ impl AppContext {
 
         if self.size_dialog.open {
             dialog_opened = true;
-            self.size_dialog.show_size_window(ctx, &mut self.canvas);
+            self.size_dialog.show_size_window(ctx);
         }
 
         dialog_opened
@@ -298,6 +298,8 @@ impl AppContext {
                     }
                     if ui.button("Size...").clicked() {
                         ui.close_menu();
+                        self.size_dialog.width = self.canvas.get_size().0;
+                        self.size_dialog.height = self.canvas.get_size().1;
                         self.size_dialog.open = true;
                     }
                 });

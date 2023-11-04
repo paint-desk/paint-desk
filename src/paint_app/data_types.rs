@@ -1,9 +1,11 @@
+#[derive(PartialEq)]
 pub enum SideHorizontal {
     center,
     left,
     right
 }
 
+#[derive(PartialEq)]
 pub enum SideVertical {
     center,
     top,
