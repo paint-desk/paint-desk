@@ -1,3 +1,15 @@
+pub enum SideHorizontal {
+    center,
+    left,
+    right
+}
+
+pub enum SideVertical {
+    center,
+    top,
+    bottom
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Color {
     pub red: u8,

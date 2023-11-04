@@ -3,10 +3,12 @@ use std::time::Instant;
 use eframe::egui;
 use eframe::epaint::textures::TextureOptions;
 use egui::{Button, Color32, ColorImage, PointerButton, Pos2, Rect, Sense, Vec2, menu, WidgetText};
+use paint_app::size_window::SizeWindow;
 use crate::paint_app::canvas::{Canvas, CanvasLayerEntry, LayerConfig, LayerId, LineTool, PaintTool, PixelPencil};
 use crate::paint_app::canvas_layer::{CanvasLayer, FlatCanvasLayer};
 use crate::paint_app::data_types::*;
 use egui_dnd::*;
+
 
 mod paint_app;
 
@@ -43,6 +45,7 @@ struct AppContext {
     global_params: GlobalParams,
     paint_tools: HashMap<u32, Box<dyn PaintTool>>,
     selected_paint_tool: u32,
+    size_dialog: SizeWindow
 }
 
 impl AppContext {
@@ -60,6 +63,7 @@ impl AppContext {
             global_params: GlobalParams::new(),
             paint_tools: HashMap::new(),
             selected_paint_tool: 1,
+            size_dialog: SizeWindow::new()
         };
         app.paint_tools.insert(1, Box::new(PixelPencil::new()));
         app.paint_tools.insert(2, Box::new(LineTool::new()));
@@ -160,6 +164,15 @@ impl AppContext {
 
     fn draw_center(&mut self, ctx: &egui::Context, take_input: bool) -> egui::InnerResponse<()> {
         egui::CentralPanel::default().show(ctx, |ui| {
+
+            let mut input = take_input;
+            let mut a_dialog_opened = false;
+            a_dialog_opened = self.handle_dialogs(ctx);
+            if a_dialog_opened {
+                input = false;
+            }
+            ui.set_enabled(!a_dialog_opened);
+
             let size = self.canvas.get_size();
 
             let slice: &[Color] = &self.canvas.get_draw_layer().get_data();
@@ -183,14 +196,16 @@ impl AppContext {
             let mut z_key = false;
             let mut y_key = false;
 
-            ctx.input(|s| {
-                middle_button = s.pointer.button_down(PointerButton::Middle);
-                self.primary_button = s.pointer.button_down(PointerButton::Primary);
-                current = s.pointer.latest_pos().unwrap_or_default();
-                ctrl_key = s.modifiers.ctrl;
-                z_key = s.key_pressed(egui::Key::Z);
-                y_key = s.key_pressed(egui::Key::Y);
-            });
+            if input {
+                ctx.input(|s| {
+                    middle_button = s.pointer.button_down(PointerButton::Middle);
+                    self.primary_button = s.pointer.button_down(PointerButton::Primary);
+                    current = s.pointer.latest_pos().unwrap_or_default();
+                    ctrl_key = s.modifiers.ctrl;
+                    z_key = s.key_pressed(egui::Key::Z);
+                    y_key = s.key_pressed(egui::Key::Y);
+                });
+            }
 
             let mut image_rect: Rect = Rect::from_two_pos(Pos2::new(0f32, 0f32), Pos2::new(0f32, 0f32));
             let scroll_area = egui::ScrollArea::both().drag_to_scroll(middle_button).show(ui, |ui| {
@@ -200,7 +215,7 @@ impl AppContext {
             current.x -= image_rect.min.x;
             current.y -= image_rect.min.y;
 
-            if take_input {
+            if input {
                 let pixel = PixelPos { x: current.x as u32, y: current.y as u32 };
                 self.global_params.current_pixel = match self.global_params.cursor_in_canvas {
                     true => Some(pixel),
@@ -217,6 +232,17 @@ impl AppContext {
 
             //ui.label(format!("drawing:{} origin:{},{} current:{},{}", drawing, origin.x, origin.y, current.x, current.y));
         })
+    }
+
+    fn handle_dialogs(&mut self, ctx: &egui::Context) -> bool {
+        let mut dialog_opened = false;
+
+        if self.size_dialog.open {
+            dialog_opened = true;
+            self.size_dialog.show_size_window(ctx, &mut self.canvas);
+        }
+
+        dialog_opened
     }
 
     fn handle_tool_events(&mut self) {
@@ -269,6 +295,10 @@ impl AppContext {
                         ui.close_menu();
                         //TODO: save file
                         //This will be handled differently for web and native
+                    }
+                    if ui.button("Size...").clicked() {
+                        ui.close_menu();
+                        self.size_dialog.open = true;
                     }
                 });
 

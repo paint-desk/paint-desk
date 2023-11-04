@@ -2,17 +2,7 @@ use std::collections::HashMap;
 use crate::paint_app::utils::pixel_overlap;
 use super::data_types::*;
 
-enum SideHorizontal {
-    center,
-    left,
-    right
-}
 
-enum SideVertical {
-    center,
-    top,
-    bottom
-}
 
 
 pub trait CanvasLayer {
@@ -199,6 +189,8 @@ impl CanvasLayer for HashMapCanvasLayer {
     }
 
     fn set_size(&mut self, width: u32, height: u32, keep_horizontal: SideHorizontal, keep_vertical: SideVertical) {
-
+        self.clear();
+        self.width = width;
+        self.height = height;
     }
 }
